@@ -39,7 +39,12 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ message: 'Internal server error.' });
 });
 
+const listEndpoints = require('express-list-endpoints');
+
 app.listen(PORT, () => {
   console.log(`🚀 HabitForge API running at http://localhost:${PORT}/api`);
   console.log(`   Health check: http://localhost:${PORT}/api/health`);
+  console.log('\n--- Bảng danh sách tất cả các API ---');
+  console.table(listEndpoints(app));
+  console.log('-------------------------------------\n');
 });
