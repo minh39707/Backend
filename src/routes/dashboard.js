@@ -22,7 +22,7 @@ function buildCalendarDays(habits, logs) {
 
   // Build a set of dates that have completed logs
   const completedDates = new Set(
-    logs.map((log) => new Date(log.completed_at).toDateString())
+    logs.map((log) => new Date(log.log_date).toDateString())
   );
 
   return dayLabels.map((day, index) => {
@@ -60,42 +60,49 @@ router.get('/', requireUser, async (req, res) => {
       .from('habit_logs')
       .select('*')
       .eq('user_id', userId)
-      .gte('completed_at', sevenDaysAgo.toISOString());
+      .gte('log_date', sevenDaysAgo.toISOString().split('T')[0]);
 
-    // Get total logs for stats
+    // Fetch actual character stats for HP and EXP
+    const { data: character } = await supabase
+      .from('characters')
+      .select('current_hp, max_hp, current_exp')
+      .eq('user_id', req.userId)
+      .single();
+
+    const weekLogs = recentLogs?.length ?? 0;
+    const hp = character?.current_hp ?? 100;
+    const maxHp = character?.max_hp ?? 100;
+    const exp = character?.current_exp ?? 0;
+    const streak = weekLogs;
+
+    // Total logs is now just the count of all logs for frontend "todayProgress" ratio.
     const { count: totalLogs } = await supabase
       .from('habit_logs')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
-    const weekLogs = recentLogs?.length ?? 0;
-    const exp = Math.min(100, (totalLogs ?? 0) * 5);
-    const streak = weekLogs;
-    const hp = Math.min(100, 50 + streak * 7);
-
     const stats = [
-      { label: 'HP', value: hp, max: 100, color: '#EF4444', icon: 'heart' },
-      { label: 'EXP', value: exp, max: 100, color: '#3B82F6', icon: 'flash' },
+      { label: 'HP', value: hp, max: maxHp, color: '#EF4444', icon: 'heart' },
+      { label: 'EXP', value: exp % 100, max: 100, color: '#3B82F6', icon: 'flash' },
       { label: 'Streaks', value: streak, max: 7, color: '#F59E0B', icon: 'flame' },
     ];
 
     // Quick actions from habits
     const quickActions = (habits ?? []).map((habit) => ({
-      id: habit.id,
-      title: habit.name,
-      description: `At ${habit.time_exact}`,
+      id: habit.habit_id,
+      title: habit.title,
+      description: habit.target_value ? `Target: ${habit.target_value} ${habit.target_unit ?? 'times'}` : 'Daily goal',
       color: '#3B82F6',
       tintColor: '#EDF5FF',
-      icon: habit.name === 'drink_water' ? 'water' : habit.name === 'walk' ? 'run' : 'read',
+      icon: habit.title === 'drink_water' ? 'water' : habit.title === 'walk' ? 'run' : 'read',
     }));
 
     // Good habits list
     const goodHabits = (habits ?? [])
-      .filter((h) => h.category === 'good')
       .map((habit) => ({
-        id: habit.id,
-        title: habit.name,
-        progressLabel: habit.frequency,
+        id: habit.habit_id,
+        title: habit.title,
+        progressLabel: habit.frequency_type ?? 'daily',
         actionLabel: 'Ready today',
         icon: 'book',
         iconColor: '#3B82F6',

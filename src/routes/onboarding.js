@@ -25,20 +25,22 @@ router.post('/sync', requireUser, async (req, res) => {
 
     const { data, error } = await supabase
       .from('habits')
-      .upsert(
-        {
-          user_id: userId,
-          name: habit_name,
-          type: habit_type ?? 'preset',
-          category: 'good',
-          life_area: life_area ?? null,
-          time_period: time_period ?? 'morning',
-          time_exact: time_exact ?? '07:00',
-          frequency: frequency ?? 'everyday',
-          specific_days: specific_days ?? [],
-        },
-        { onConflict: 'user_id,name' }
-      )
+      .insert({
+        user_id: userId,
+        title: habit_name,
+        description: `Created during onboarding. Area: ${life_area_label ?? 'General'}. Scheduled: ${time_period ?? 'morning'} at ${time_exact ?? '07:00'}`,
+        habit_type: habit_type ?? 'daily',
+        tracking_method: 'boolean', // Best guess for custom ENUM
+        frequency_type: 'daily',    // Best guess for custom ENUM
+        frequency_days: specific_days ?? [],
+        hp_reward: 10,
+        exp_reward: 20,
+        hp_penalty: 15,
+        streak_bonus_exp: 5,
+        target_value: 1,
+        target_unit: 'times',
+        is_active: true,
+      })
       .select()
       .single();
 

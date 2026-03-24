@@ -25,9 +25,24 @@ router.post('/email/sign-up', async (req, res) => {
 
     // Create profile
     const displayName = name ?? email.split('@')[0];
-    await supabase.from('profiles').upsert({
-      id: data.user.id,
+    await supabase.from('users').upsert({
+      user_id: data.user.id,
+      email: email,
+      username: displayName,
+    });
+
+    // Create RPG character to initialize user level/hp
+    await supabase.from('characters').insert({
+      user_id: data.user.id,
       name: displayName,
+      class: 'Novice',
+      level: 1,
+      current_hp: 100,
+      max_hp: 100,
+      current_exp: 0,
+      exp_to_next_level: 100,
+      power: 10,
+      gold_coins: 0,
     });
 
     return res.json({
@@ -61,18 +76,18 @@ router.post('/email/sign-in', async (req, res) => {
       return res.status(401).json({ message: error.message });
     }
 
-    // Fetch profile
+    // Fetch user details for frontend payload
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('name')
-      .eq('id', data.user.id)
+      .from('users')
+      .select('username')
+      .eq('user_id', data.user.id)
       .single();
 
     return res.json({
       user: {
         id: data.user.id,
         email: data.user.email,
-        name: profile?.name ?? email.split('@')[0],
+        name: profile?.username ?? email.split('@')[0],
       },
     });
   } catch (err) {
