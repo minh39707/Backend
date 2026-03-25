@@ -29,9 +29,9 @@ router.post('/sync', requireUser, async (req, res) => {
         user_id: userId,
         title: habit_name,
         description: `Created during onboarding. Area: ${life_area_label ?? 'General'}. Scheduled: ${time_period ?? 'morning'} at ${time_exact ?? '07:00'}`,
-        habit_type: habit_type ?? 'daily',
-        tracking_method: 'boolean', // Best guess for custom ENUM
-        frequency_type: 'daily',    // Best guess for custom ENUM
+        habit_type: habit_type === 'bad' ? 'negative' : 'positive',
+        tracking_method: 'boolean', // ENUM allows: quantity, time, boolean, custom
+        frequency_type: 'daily',    // ENUM allows: daily, weekly, custom
         frequency_days: specific_days ?? [],
         hp_reward: 10,
         exp_reward: 20,
