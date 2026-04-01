@@ -40,6 +40,6 @@ app.use((err, req, res, _next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 HabitForge API running at http://localhost:${PORT}/api`);
+  console.log(` HabitForge API running at http://localhost:${PORT}/api`);
   console.log(`   Health check: http://localhost:${PORT}/api/health`);
 });

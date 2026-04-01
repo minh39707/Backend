@@ -14,5 +14,4 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
     persistSession: false,
   },
 });
-
 module.exports = { supabase };

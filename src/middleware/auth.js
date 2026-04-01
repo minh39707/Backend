@@ -1,11 +1,37 @@
+const { supabase } = require('../supabase');
+
 /**
- * Middleware to extract user ID from x-user-id header.
- * Does not block requests without it — routes decide if auth is required.
+ * Middleware to extract user ID from Authorization header (Bearer token)
+ * Fallback to x-user-id header for backward compatibility during transition.
  */
-function extractUserId(req, res, next) {
-  const userId = req.headers['x-user-id'];
-  req.userId = userId ?? null;
-  next();
+async function extractUserId(req, res, next) {
+  try {
+    const authHeader = req.headers['authorization'];
+    
+    // 1. Try to extract from Bearer token
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      
+      // Verify JWT with Supabase
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      
+      if (!error && user) {
+        req.userId = user.id;
+        req.user = user;
+        return next();
+      }
+    }
+    
+    // 2. Fallback to old x-user-id header
+    const userId = req.headers['x-user-id'];
+    req.userId = userId ?? null;
+    
+    next();
+  } catch (err) {
+    console.error('Auth middleware error:', err);
+    req.userId = null;
+    next();
+  }
 }
 
 /**
@@ -13,7 +39,7 @@ function extractUserId(req, res, next) {
  */
 function requireUser(req, res, next) {
   if (!req.userId) {
-    return res.status(401).json({ message: 'Authentication required. Missing x-user-id header.' });
+    return res.status(401).json({ message: 'Authentication required. Invalid or missing token.' });
   }
   next();
 }
